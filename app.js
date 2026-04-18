@@ -1,3 +1,4 @@
+const AU_KM = 149_597_870.7;
 const J2000_UTC_MS = Date.UTC(2000, 0, 1, 12, 0, 0);
 const TWO_PI = Math.PI * 2;
 const DAY_MS = 86_400_000;
@@ -139,6 +140,43 @@ const SPEED_PRESETS = [
   { rate: 6_311_520_000, label: '200 years / second' }
 ];
 
+const MOONS_BY_PLANET = {
+  Earth: [
+    { name: 'Moon', aKm: 384_400, periodDays: 27.321661, phaseDeg: 35, color: '#d9d9d9', radiusPx: 1.9 }
+  ],
+  Mars: [
+    { name: 'Phobos', aKm: 9_376, periodDays: 0.31891, phaseDeg: 110, color: '#bfa98c', radiusPx: 1.2 },
+    { name: 'Deimos', aKm: 23_463, periodDays: 1.263, phaseDeg: 250, color: '#9f8f7a', radiusPx: 1.2 }
+  ],
+  Jupiter: [
+    { name: 'Io', aKm: 421_700, periodDays: 1.769, phaseDeg: 15, color: '#f9d57d', radiusPx: 1.7 },
+    { name: 'Europa', aKm: 671_034, periodDays: 3.551, phaseDeg: 110, color: '#c8d4e6', radiusPx: 1.7 },
+    { name: 'Ganymede', aKm: 1_070_412, periodDays: 7.155, phaseDeg: 210, color: '#a8967d', radiusPx: 1.9 },
+    { name: 'Callisto', aKm: 1_882_709, periodDays: 16.689, phaseDeg: 300, color: '#8d8173', radiusPx: 1.9 }
+  ],
+  Saturn: [
+    { name: 'Mimas', aKm: 185_539, periodDays: 0.942, phaseDeg: 30, color: '#a9a8a4', radiusPx: 1.2 },
+    { name: 'Enceladus', aKm: 238_042, periodDays: 1.37, phaseDeg: 70, color: '#ebf6ff', radiusPx: 1.3 },
+    { name: 'Tethys', aKm: 294_672, periodDays: 1.888, phaseDeg: 120, color: '#d7d6ce', radiusPx: 1.3 },
+    { name: 'Dione', aKm: 377_415, periodDays: 2.737, phaseDeg: 180, color: '#c6c5be', radiusPx: 1.3 },
+    { name: 'Rhea', aKm: 527_108, periodDays: 4.518, phaseDeg: 240, color: '#bdb9af', radiusPx: 1.5 },
+    { name: 'Titan', aKm: 1_221_870, periodDays: 15.945, phaseDeg: 300, color: '#d9b77f', radiusPx: 2.2 },
+    { name: 'Iapetus', aKm: 3_560_820, periodDays: 79.321, phaseDeg: 20, color: '#8b8275', radiusPx: 1.8 }
+  ],
+  Uranus: [
+    { name: 'Miranda', aKm: 129_390, periodDays: 1.413, phaseDeg: 20, color: '#bdbab5', radiusPx: 1.2 },
+    { name: 'Ariel', aKm: 191_020, periodDays: 2.52, phaseDeg: 75, color: '#d6d3cb', radiusPx: 1.3 },
+    { name: 'Umbriel', aKm: 266_300, periodDays: 4.144, phaseDeg: 145, color: '#7a7d82', radiusPx: 1.4 },
+    { name: 'Titania', aKm: 435_910, periodDays: 8.706, phaseDeg: 225, color: '#bcb7ae', radiusPx: 1.5 },
+    { name: 'Oberon', aKm: 583_520, periodDays: 13.463, phaseDeg: 310, color: '#a8a8a3', radiusPx: 1.5 }
+  ],
+  Neptune: [
+    { name: 'Proteus', aKm: 117_647, periodDays: 1.122, phaseDeg: 40, color: '#8b8f95', radiusPx: 1.3 },
+    { name: 'Triton', aKm: 354_759, periodDays: 5.877, phaseDeg: 180, color: '#d4d7db', radiusPx: 1.9 },
+    { name: 'Nereid', aKm: 5_513_818, periodDays: 360.14, phaseDeg: 290, color: '#9ba5b8', radiusPx: 1.3 }
+  ]
+};
+
 const state = {
   simTimeMs: Date.now(),
   lastFrameMs: performance.now(),
@@ -210,6 +248,20 @@ function planetHeliocentricPositionAU(planet, timeMs) {
   const yh = r * (Math.sin(O) * Math.cos(v + w) + Math.cos(O) * Math.sin(v + w) * Math.cos(i));
 
   return { xAU: xh, yAU: yh };
+}
+
+function moonRelativePositionAU(moon, timeMs) {
+  const daysFromJ2000 = (timeMs - J2000_UTC_MS) / DAY_MS;
+  const n = TWO_PI / moon.periodDays;
+  const phase0 = degToRad(moon.phaseDeg || 0);
+  const anomaly = normalizeAngle(phase0 + n * daysFromJ2000);
+  const aAU = moon.aKm / AU_KM;
+
+  return {
+    xAU: aAU * Math.cos(anomaly),
+    yAU: aAU * Math.sin(anomaly),
+    rAU: aAU
+  };
 }
 
 function worldToCanvas(xAU, yAU, centerX, centerY, pxPerAU) {
@@ -296,6 +348,9 @@ function render() {
   const cx = w * 0.5;
   const cy = h * 0.5;
   const pxScale = getPxPerAU(w, h, state.scaleMode);
+  const moonScaleBoost = Math.max(1, state.zoomPercent / 70);
+  const drawMoonLabels = state.zoomPercent >= 700;
+  const drawMoonOrbits = state.zoomPercent >= 220;
 
   drawBackground(w, h);
 
@@ -327,6 +382,38 @@ function render() {
     ctx.fillStyle = planet.color;
     ctx.fill();
     drawLabel(planet.name, p.x, p.y, w, h);
+
+    const moons = MOONS_BY_PLANET[planet.name] || [];
+    for (const moon of moons) {
+      const rel = moonRelativePositionAU(moon, state.simTimeMs);
+
+      const moonAbsX = pos.xAU + rel.xAU;
+      const moonAbsY = pos.yAU + rel.yAU;
+      const moonProjected = projectPoint(moonAbsX, moonAbsY, state.scaleMode);
+      const mp = worldToCanvas(moonProjected.x, moonProjected.y, cx, cy, pxScale);
+
+      if (drawMoonOrbits) {
+        const moonOrbitDisplayAU = projectedRadiusForDistance(rel.rAU, state.scaleMode);
+        const moonOrbitRpx = moonOrbitDisplayAU * pxScale * moonScaleBoost;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, moonOrbitRpx, 0, TWO_PI);
+        ctx.strokeStyle = 'rgba(180, 190, 215, 0.2)';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+      }
+
+      const moonDrawX = p.x + (mp.x - p.x) * moonScaleBoost;
+      const moonDrawY = p.y + (mp.y - p.y) * moonScaleBoost;
+
+      ctx.beginPath();
+      ctx.arc(moonDrawX, moonDrawY, moon.radiusPx, 0, TWO_PI);
+      ctx.fillStyle = moon.color;
+      ctx.fill();
+
+      if (drawMoonLabels) {
+        drawLabel(moon.name, moonDrawX, moonDrawY, w, h);
+      }
+    }
   }
 
   simTimeEl.textContent = `${new Date(state.simTimeMs).toISOString()} (${state.speedLabel})`;
