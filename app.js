@@ -109,6 +109,8 @@ const speedInput = document.getElementById('speed');
 const speedOut = document.getElementById('speedOut');
 const zoomInput = document.getElementById('zoom');
 const zoomOut = document.getElementById('zoomOut');
+const planetLabelsToggle = document.getElementById('planetLabelsToggle');
+const moonLabelsToggle = document.getElementById('moonLabelsToggle');
 const pauseBtn = document.getElementById('pauseBtn');
 const nowBtn = document.getElementById('nowBtn');
 const scaleModeSelect = document.getElementById('scaleMode');
@@ -184,9 +186,23 @@ const state = {
   speedLabel: '30 days / second',
   speedIndex: 12,
   zoomPercent: 260,
+  showPlanetLabels: true,
+  showMoonLabels: true,
   paused: false,
   scaleMode: 'exaggerated'
 };
+
+function applyZoomBoundsByScaleMode() {
+  const maxZoom = state.scaleMode === 'realistic' ? 10000 : 1200;
+  zoomInput.max = String(maxZoom);
+
+  if (state.zoomPercent > maxZoom) {
+    state.zoomPercent = maxZoom;
+  }
+
+  zoomInput.value = String(state.zoomPercent);
+  zoomOut.textContent = `${state.zoomPercent}%`;
+}
 
 function formatMultiplierWords(multiplier) {
   if (multiplier < 1000) return `${multiplier.toFixed(0)}x realtime`;
@@ -349,7 +365,7 @@ function render() {
   const cy = h * 0.5;
   const pxScale = getPxPerAU(w, h, state.scaleMode);
   const moonScaleBoost = Math.max(1, state.zoomPercent / 70);
-  const drawMoonLabels = state.zoomPercent >= 700;
+  const autoMoonLabelThresholdReached = state.zoomPercent >= 700;
   const drawMoonOrbits = state.zoomPercent >= 220;
 
   drawBackground(w, h);
@@ -370,7 +386,9 @@ function render() {
   ctx.shadowBlur = 24;
   ctx.fill();
   ctx.shadowBlur = 0;
-  drawLabel('Sun', cx, cy, w, h);
+  if (state.showPlanetLabels) {
+    drawLabel('Sun', cx, cy, w, h);
+  }
 
   for (const planet of PLANETS) {
     const pos = planetHeliocentricPositionAU(planet, state.simTimeMs);
@@ -381,7 +399,9 @@ function render() {
     ctx.arc(p.x, p.y, planet.radiusPx, 0, TWO_PI);
     ctx.fillStyle = planet.color;
     ctx.fill();
-    drawLabel(planet.name, p.x, p.y, w, h);
+    if (state.showPlanetLabels) {
+      drawLabel(planet.name, p.x, p.y, w, h);
+    }
 
     const moons = MOONS_BY_PLANET[planet.name] || [];
     for (const moon of moons) {
@@ -410,7 +430,7 @@ function render() {
       ctx.fillStyle = moon.color;
       ctx.fill();
 
-      if (drawMoonLabels) {
+      if (state.showMoonLabels && autoMoonLabelThresholdReached) {
         drawLabel(moon.name, moonDrawX, moonDrawY, w, h);
       }
     }
@@ -459,6 +479,14 @@ zoomInput.addEventListener('input', () => {
   zoomOut.textContent = `${state.zoomPercent}%`;
 });
 
+planetLabelsToggle.addEventListener('change', () => {
+  state.showPlanetLabels = planetLabelsToggle.checked;
+});
+
+moonLabelsToggle.addEventListener('change', () => {
+  state.showMoonLabels = moonLabelsToggle.checked;
+});
+
 pauseBtn.addEventListener('click', () => {
   state.paused = !state.paused;
   pauseBtn.textContent = state.paused ? 'Resume' : 'Pause';
@@ -472,14 +500,16 @@ nowBtn.addEventListener('click', () => {
 
 scaleModeSelect.addEventListener('change', () => {
   state.scaleMode = scaleModeSelect.value;
+  applyZoomBoundsByScaleMode();
 });
 
 window.addEventListener('resize', resizeCanvasToDisplaySize);
 
 speedInput.max = String(SPEED_PRESETS.length - 1);
 applySpeedIndex(state.speedIndex);
-zoomInput.value = String(state.zoomPercent);
-zoomOut.textContent = `${state.zoomPercent}%`;
+applyZoomBoundsByScaleMode();
+planetLabelsToggle.checked = state.showPlanetLabels;
+moonLabelsToggle.checked = state.showMoonLabels;
 resizeCanvasToDisplaySize();
 requestAnimationFrame((t) => {
   state.lastFrameMs = t;
