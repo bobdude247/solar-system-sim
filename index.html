@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solar System Simulator</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>Solar System Simulator</h1>
+      <p>
+        Real-time orbital motion with adjustable time acceleration and scale
+        visualization.
+      </p>
+    </header>
+
+    <main class="layout">
+      <section class="controls card">
+        <div class="row">
+          <label for="speed">Time speed</label>
+          <input id="speed" type="range" min="1" max="1000" value="1" step="1" />
+          <output id="speedOut">1x</output>
+        </div>
+
+        <div class="row compact">
+          <button id="pauseBtn" type="button">Pause</button>
+          <button id="nowBtn" type="button">Return to Now</button>
+        </div>
+
+        <div class="row">
+          <label for="scaleMode">Scale mode</label>
+          <select id="scaleMode">
+            <option value="exaggerated" selected>Exaggerated (recommended)</option>
+            <option value="realistic">Distance-proportional</option>
+          </select>
+        </div>
+
+        <div class="meta">
+          <div><strong>Simulated UTC:</strong> <span id="simTime"></span></div>
+          <div><strong>Mode note:</strong> <span id="scaleNote"></span></div>
+        </div>
+      </section>
+
+      <section class="viewport card">
+        <canvas id="simCanvas" width="1200" height="800" aria-label="Solar system visualization"></canvas>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+  </html>
+
