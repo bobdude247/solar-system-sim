@@ -19,18 +19,20 @@
       <section class="controls card">
         <div class="row">
           <label for="speed">Time rate</label>
-          <select id="speed">
-            <option value="1">Real time (1x)</option>
-            <option value="86400">1 day / second</option>
-            <option value="604800">1 week / second</option>
-            <option value="2592000">30 days / second</option>
-            <option value="31557600" selected>1 year / second</option>
-            <option value="157788000">5 years / second</option>
-            <option value="315576000">10 years / second</option>
-            <option value="1577880000">50 years / second</option>
-            <option value="3155760000">100 years / second</option>
-          </select>
+          <input id="speed" type="range" min="0" max="20" step="1" value="13" list="speedTicks" />
+          <datalist id="speedTicks">
+            <option value="0" label="1x"></option>
+            <option value="8" label="1 day/s"></option>
+            <option value="10" label="1 week/s"></option>
+            <option value="12" label="30 day/s"></option>
+            <option value="13" label="1 year/s"></option>
+            <option value="15" label="5 year/s"></option>
+            <option value="16" label="10 year/s"></option>
+            <option value="19" label="50 year/s"></option>
+            <option value="20" label="100 year/s"></option>
+          </datalist>
           <output id="speedOut">1 year / second</output>
+          <div id="speedDetail" class="hint">about 31.56 million × realtime</div>
         </div>
 
         <div class="row compact">

@@ -111,15 +111,61 @@ const nowBtn = document.getElementById('nowBtn');
 const scaleModeSelect = document.getElementById('scaleMode');
 const simTimeEl = document.getElementById('simTime');
 const scaleNoteEl = document.getElementById('scaleNote');
+const speedDetailEl = document.getElementById('speedDetail');
+
+const SPEED_PRESETS = [
+  { rate: 1, label: 'Real time (1x)' },
+  { rate: 2, label: '2 seconds / second' },
+  { rate: 5, label: '5 seconds / second' },
+  { rate: 10, label: '10 seconds / second' },
+  { rate: 30, label: '30 seconds / second' },
+  { rate: 60, label: '1 minute / second' },
+  { rate: 300, label: '5 minutes / second' },
+  { rate: 3600, label: '1 hour / second' },
+  { rate: 86_400, label: '1 day / second' },
+  { rate: 259_200, label: '3 days / second' },
+  { rate: 604_800, label: '1 week / second' },
+  { rate: 1_209_600, label: '2 weeks / second' },
+  { rate: 2_592_000, label: '30 days / second' },
+  { rate: 31_557_600, label: '1 year / second' },
+  { rate: 94_672_800, label: '3 years / second' },
+  { rate: 157_788_000, label: '5 years / second' },
+  { rate: 315_576_000, label: '10 years / second' },
+  { rate: 631_152_000, label: '20 years / second' },
+  { rate: 1_577_880_000, label: '50 years / second' },
+  { rate: 3_155_760_000, label: '100 years / second' },
+  { rate: 6_311_520_000, label: '200 years / second' }
+];
 
 const state = {
   simTimeMs: Date.now(),
   lastFrameMs: performance.now(),
-  speed: 31_557_600,
+  speed: SPEED_PRESETS[13].rate,
   speedLabel: '1 year / second',
+  speedIndex: 13,
   paused: false,
   scaleMode: 'exaggerated'
 };
+
+function formatMultiplierWords(multiplier) {
+  if (multiplier < 1000) return `${multiplier.toFixed(0)}x realtime`;
+  if (multiplier < 1_000_000) return `about ${(multiplier / 1000).toFixed(1)} thousand x realtime`;
+  if (multiplier < 1_000_000_000) return `about ${(multiplier / 1_000_000).toFixed(2)} million x realtime`;
+  return `about ${(multiplier / 1_000_000_000).toFixed(2)} billion x realtime`;
+}
+
+function applySpeedIndex(index) {
+  const clamped = Math.max(0, Math.min(SPEED_PRESETS.length - 1, index));
+  const preset = SPEED_PRESETS[clamped];
+
+  state.speedIndex = clamped;
+  state.speed = preset.rate;
+  state.speedLabel = preset.label;
+
+  speedInput.value = String(clamped);
+  speedOut.textContent = preset.label;
+  speedDetailEl.textContent = formatMultiplierWords(preset.rate);
+}
 
 function degToRad(v) {
   return (v * Math.PI) / 180;
@@ -313,10 +359,8 @@ function resizeCanvasToDisplaySize() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-speedInput.addEventListener('change', () => {
-  state.speed = Number(speedInput.value);
-  state.speedLabel = speedInput.options[speedInput.selectedIndex].textContent;
-  speedOut.textContent = state.speedLabel;
+speedInput.addEventListener('input', () => {
+  applySpeedIndex(Number(speedInput.value));
 });
 
 pauseBtn.addEventListener('click', () => {
@@ -336,8 +380,8 @@ scaleModeSelect.addEventListener('change', () => {
 
 window.addEventListener('resize', resizeCanvasToDisplaySize);
 
-speedInput.value = String(state.speed);
-speedOut.textContent = state.speedLabel;
+speedInput.max = String(SPEED_PRESETS.length - 1);
+applySpeedIndex(state.speedIndex);
 resizeCanvasToDisplaySize();
 requestAnimationFrame((t) => {
   state.lastFrameMs = t;
