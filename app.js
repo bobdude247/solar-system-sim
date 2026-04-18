@@ -170,22 +170,22 @@ function worldToCanvas(xAU, yAU, centerX, centerY, pxPerAU) {
   };
 }
 
+function projectedRadiusForDistance(distanceAU, mode) {
+  if (mode === 'realistic') return distanceAU;
+  return Math.sqrt(distanceAU);
+}
+
 function getPxPerAU(width, height, mode) {
-  const maxR = Math.max(...PLANETS.map((p) => p.a * (1 + p.e)));
   const drawRadius = Math.min(width, height) * 0.5;
+  const edgeReservePx = 140;
+  const usableRadius = Math.max(24, drawRadius - edgeReservePx);
 
-  // Reserve space so bodies + labels don't clip at viewport edges.
-  const edgeReservePx = 120;
-  const usableRadius = Math.max(40, drawRadius - edgeReservePx);
+  // Use apoapsis so every planet stays visible at any timestamp.
+  const maxProjectedRadius = Math.max(
+    ...PLANETS.map((p) => projectedRadiusForDistance(p.a * (1 + p.e), mode))
+  );
 
-  if (mode === 'realistic') {
-    return usableRadius / maxR;
-  }
-
-  // In exaggerated mode we map radial distance with sqrt(r), so this is the
-  // max projected orbital distance.
-  const exaggeratedMax = Math.sqrt(maxR);
-  return usableRadius / exaggeratedMax;
+  return usableRadius / maxProjectedRadius;
 }
 
 function orbitDisplayRadiusAU(planetA, mode) {
