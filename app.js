@@ -171,28 +171,65 @@ function worldToCanvas(xAU, yAU, centerX, centerY, pxPerAU) {
 }
 
 function getPxPerAU(width, height, mode) {
-  const pad = 72;
   const maxR = Math.max(...PLANETS.map((p) => p.a * (1 + p.e)));
-  const realistic = (Math.min(width, height) * 0.5 - pad) / maxR;
+  const drawRadius = Math.min(width, height) * 0.5;
 
-  if (mode === 'realistic') return realistic;
-  const exaggerated = (Math.min(width, height) * 0.5 - pad) / Math.sqrt(maxR);
-  return exaggerated;
+  // Reserve space so bodies + labels don't clip at viewport edges.
+  const edgeReservePx = 120;
+  const usableRadius = Math.max(40, drawRadius - edgeReservePx);
+
+  if (mode === 'realistic') {
+    return usableRadius / maxR;
+  }
+
+  // In exaggerated mode we map radial distance with sqrt(r), so this is the
+  // max projected orbital distance.
+  const exaggeratedMax = Math.sqrt(maxR);
+  return usableRadius / exaggeratedMax;
 }
 
 function orbitDisplayRadiusAU(planetA, mode) {
   return mode === 'realistic' ? planetA : Math.sqrt(planetA);
 }
 
-function projectCoord(v, mode) {
-  if (mode === 'realistic') return v;
-  return Math.sign(v) * Math.sqrt(Math.abs(v));
+function projectPoint(xAU, yAU, mode) {
+  if (mode === 'realistic') {
+    return { x: xAU, y: yAU };
+  }
+
+  const r = Math.sqrt(xAU * xAU + yAU * yAU);
+  const theta = Math.atan2(yAU, xAU);
+  const rp = Math.sqrt(r);
+
+  return {
+    x: rp * Math.cos(theta),
+    y: rp * Math.sin(theta)
+  };
 }
 
-function drawLabel(text, x, y) {
+function drawLabel(text, x, y, viewW, viewH) {
   ctx.font = '12px Segoe UI, Arial, sans-serif';
   ctx.fillStyle = '#d9e4ff';
-  ctx.fillText(text, x + 6, y - 6);
+
+  const margin = 8;
+  const textWidth = ctx.measureText(text).width;
+
+  let lx = x + 8;
+  let ly = y - 8;
+
+  if (lx + textWidth > viewW - margin) {
+    lx = x - textWidth - 8;
+  }
+
+  if (ly < 14) {
+    ly = y + 14;
+  }
+
+  if (ly > viewH - margin) {
+    ly = viewH - margin;
+  }
+
+  ctx.fillText(text, lx, ly);
 }
 
 function drawBackground(w, h) {
@@ -228,19 +265,18 @@ function render() {
   ctx.shadowBlur = 24;
   ctx.fill();
   ctx.shadowBlur = 0;
-  drawLabel('Sun', cx, cy);
+  drawLabel('Sun', cx, cy, w, h);
 
   for (const planet of PLANETS) {
     const pos = planetHeliocentricPositionAU(planet, state.simTimeMs);
-    const plotX = projectCoord(pos.xAU, state.scaleMode);
-    const plotY = projectCoord(pos.yAU, state.scaleMode);
-    const p = worldToCanvas(plotX, plotY, cx, cy, pxScale);
+    const projected = projectPoint(pos.xAU, pos.yAU, state.scaleMode);
+    const p = worldToCanvas(projected.x, projected.y, cx, cy, pxScale);
 
     ctx.beginPath();
     ctx.arc(p.x, p.y, planet.radiusPx, 0, TWO_PI);
     ctx.fillStyle = planet.color;
     ctx.fill();
-    drawLabel(planet.name, p.x, p.y);
+    drawLabel(planet.name, p.x, p.y, w, h);
   }
 
   simTimeEl.textContent = `${new Date(state.simTimeMs).toISOString()} (${state.speedLabel})`;
