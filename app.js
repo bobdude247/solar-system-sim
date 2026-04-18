@@ -106,6 +106,8 @@ const ctx = canvas.getContext('2d');
 
 const speedInput = document.getElementById('speed');
 const speedOut = document.getElementById('speedOut');
+const zoomInput = document.getElementById('zoom');
+const zoomOut = document.getElementById('zoomOut');
 const pauseBtn = document.getElementById('pauseBtn');
 const nowBtn = document.getElementById('nowBtn');
 const scaleModeSelect = document.getElementById('scaleMode');
@@ -143,6 +145,7 @@ const state = {
   speed: SPEED_PRESETS[13].rate,
   speedLabel: '1 year / second',
   speedIndex: 13,
+  zoomPercent: 100,
   paused: false,
   scaleMode: 'exaggerated'
 };
@@ -164,7 +167,7 @@ function applySpeedIndex(index) {
 
   speedInput.value = String(clamped);
   speedOut.textContent = preset.label;
-  speedDetailEl.textContent = formatMultiplierWords(preset.rate);
+  speedDetailEl.textContent = `${formatMultiplierWords(preset.rate)} (${preset.rate.toLocaleString()}x)`;
 }
 
 function degToRad(v) {
@@ -231,7 +234,8 @@ function getPxPerAU(width, height, mode) {
     ...PLANETS.map((p) => projectedRadiusForDistance(p.a * (1 + p.e), mode))
   );
 
-  return usableRadius / maxProjectedRadius;
+  const baseScale = usableRadius / maxProjectedRadius;
+  return baseScale * (state.zoomPercent / 100);
 }
 
 function orbitDisplayRadiusAU(planetA, mode) {
@@ -363,6 +367,11 @@ speedInput.addEventListener('input', () => {
   applySpeedIndex(Number(speedInput.value));
 });
 
+zoomInput.addEventListener('input', () => {
+  state.zoomPercent = Number(zoomInput.value);
+  zoomOut.textContent = `${state.zoomPercent}%`;
+});
+
 pauseBtn.addEventListener('click', () => {
   state.paused = !state.paused;
   pauseBtn.textContent = state.paused ? 'Resume' : 'Pause';
@@ -382,6 +391,8 @@ window.addEventListener('resize', resizeCanvasToDisplaySize);
 
 speedInput.max = String(SPEED_PRESETS.length - 1);
 applySpeedIndex(state.speedIndex);
+zoomInput.value = String(state.zoomPercent);
+zoomOut.textContent = `${state.zoomPercent}%`;
 resizeCanvasToDisplaySize();
 requestAnimationFrame((t) => {
   state.lastFrameMs = t;
