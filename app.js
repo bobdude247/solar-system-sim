@@ -1,4 +1,3 @@
-const AU_KM = 149_597_870.7;
 const J2000_UTC_MS = Date.UTC(2000, 0, 1, 12, 0, 0);
 const TWO_PI = Math.PI * 2;
 const DAY_MS = 86_400_000;
@@ -116,7 +115,8 @@ const scaleNoteEl = document.getElementById('scaleNote');
 const state = {
   simTimeMs: Date.now(),
   lastFrameMs: performance.now(),
-  speed: 1,
+  speed: 31_557_600,
+  speedLabel: '1 year / second',
   paused: false,
   scaleMode: 'exaggerated'
 };
@@ -160,7 +160,7 @@ function planetHeliocentricPositionAU(planet, timeMs) {
   const xh = r * (Math.cos(O) * Math.cos(v + w) - Math.sin(O) * Math.sin(v + w) * Math.cos(i));
   const yh = r * (Math.sin(O) * Math.cos(v + w) + Math.cos(O) * Math.sin(v + w) * Math.cos(i));
 
-  return { xAU: xh, yAU: yh, rAU: r };
+  return { xAU: xh, yAU: yh };
 }
 
 function worldToCanvas(xAU, yAU, centerX, centerY, pxPerAU) {
@@ -171,18 +171,22 @@ function worldToCanvas(xAU, yAU, centerX, centerY, pxPerAU) {
 }
 
 function getPxPerAU(width, height, mode) {
-  const pad = 56;
-  const maxR = 30.5;
+  const pad = 72;
+  const maxR = Math.max(...PLANETS.map((p) => p.a * (1 + p.e)));
   const realistic = (Math.min(width, height) * 0.5 - pad) / maxR;
 
   if (mode === 'realistic') return realistic;
-
-  const exaggeratedOuter = (Math.min(width, height) * 0.5 - pad) / Math.sqrt(maxR);
-  return exaggeratedOuter;
+  const exaggerated = (Math.min(width, height) * 0.5 - pad) / Math.sqrt(maxR);
+  return exaggerated;
 }
 
 function orbitDisplayRadiusAU(planetA, mode) {
   return mode === 'realistic' ? planetA : Math.sqrt(planetA);
+}
+
+function projectCoord(v, mode) {
+  if (mode === 'realistic') return v;
+  return Math.sign(v) * Math.sqrt(Math.abs(v));
 }
 
 function drawLabel(text, x, y) {
@@ -200,8 +204,8 @@ function drawBackground(w, h) {
 }
 
 function render() {
-  const w = canvas.width;
-  const h = canvas.height;
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
   const cx = w * 0.5;
   const cy = h * 0.5;
   const pxScale = getPxPerAU(w, h, state.scaleMode);
@@ -218,7 +222,7 @@ function render() {
   }
 
   ctx.beginPath();
-  ctx.arc(cx, cy, 12, 0, TWO_PI);
+  ctx.arc(cx, cy, 10, 0, TWO_PI);
   ctx.fillStyle = '#ffd36c';
   ctx.shadowColor = '#ffb347';
   ctx.shadowBlur = 24;
@@ -228,24 +232,22 @@ function render() {
 
   for (const planet of PLANETS) {
     const pos = planetHeliocentricPositionAU(planet, state.simTimeMs);
-    const plotX = state.scaleMode === 'realistic' ? pos.xAU : Math.sign(pos.xAU) * Math.sqrt(Math.abs(pos.xAU));
-    const plotY = state.scaleMode === 'realistic' ? pos.yAU : Math.sign(pos.yAU) * Math.sqrt(Math.abs(pos.yAU));
-
+    const plotX = projectCoord(pos.xAU, state.scaleMode);
+    const plotY = projectCoord(pos.yAU, state.scaleMode);
     const p = worldToCanvas(plotX, plotY, cx, cy, pxScale);
 
     ctx.beginPath();
     ctx.arc(p.x, p.y, planet.radiusPx, 0, TWO_PI);
     ctx.fillStyle = planet.color;
     ctx.fill();
-
     drawLabel(planet.name, p.x, p.y);
   }
 
-  simTimeEl.textContent = new Date(state.simTimeMs).toISOString();
+  simTimeEl.textContent = `${new Date(state.simTimeMs).toISOString()} (${state.speedLabel})`;
   if (state.scaleMode === 'realistic') {
-    scaleNoteEl.textContent = 'Distance-proportional AU projection; inner planets appear tightly clustered.';
+    scaleNoteEl.textContent = 'Distance-proportional AU projection fit to screen.';
   } else {
-    scaleNoteEl.textContent = 'Exaggerated distance mapping (sqrt) for easier visual comparison.';
+    scaleNoteEl.textContent = 'Exaggerated distance mapping (sqrt) fit to screen.';
   }
 }
 
@@ -270,13 +272,15 @@ function resizeCanvasToDisplaySize() {
   if (canvas.width !== nextW || canvas.height !== nextH) {
     canvas.width = nextW;
     canvas.height = nextH;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-speedInput.addEventListener('input', () => {
+speedInput.addEventListener('change', () => {
   state.speed = Number(speedInput.value);
-  speedOut.textContent = `${state.speed}x`;
+  state.speedLabel = speedInput.options[speedInput.selectedIndex].textContent;
+  speedOut.textContent = state.speedLabel;
 });
 
 pauseBtn.addEventListener('click', () => {
@@ -296,7 +300,8 @@ scaleModeSelect.addEventListener('change', () => {
 
 window.addEventListener('resize', resizeCanvasToDisplaySize);
 
-speedOut.textContent = `${state.speed}x`;
+speedInput.value = String(state.speed);
+speedOut.textContent = state.speedLabel;
 resizeCanvasToDisplaySize();
 requestAnimationFrame((t) => {
   state.lastFrameMs = t;

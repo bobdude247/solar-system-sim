@@ -17,6 +17,7 @@ body {
   font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
   background: radial-gradient(circle at top, #0f1730 0%, var(--bg) 55%);
   color: var(--text);
+  min-height: 100vh;
 }
 
 .app-header {
@@ -38,6 +39,7 @@ body {
   grid-template-columns: minmax(280px, 380px) 1fr;
   gap: 1rem;
   padding: 1rem 1.25rem 1.25rem;
+  height: calc(100vh - 88px);
 }
 
 .card {
@@ -105,11 +107,12 @@ output {
 
 .viewport {
   padding: 0.5rem;
+  min-height: 0;
 }
 
 canvas {
   width: 100%;
-  height: min(78vh, 900px);
+  height: 100%;
   display: block;
   border-radius: 10px;
   background: #050912;
@@ -118,6 +121,7 @@ canvas {
 @media (max-width: 1024px) {
   .layout {
     grid-template-columns: 1fr;
+    height: auto;
   }
 
   canvas {

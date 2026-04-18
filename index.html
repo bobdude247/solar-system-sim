@@ -18,9 +18,19 @@
     <main class="layout">
       <section class="controls card">
         <div class="row">
-          <label for="speed">Time speed</label>
-          <input id="speed" type="range" min="1" max="1000" value="1" step="1" />
-          <output id="speedOut">1x</output>
+          <label for="speed">Time rate</label>
+          <select id="speed">
+            <option value="1">Real time (1x)</option>
+            <option value="86400">1 day / second</option>
+            <option value="604800">1 week / second</option>
+            <option value="2592000">30 days / second</option>
+            <option value="31557600" selected>1 year / second</option>
+            <option value="157788000">5 years / second</option>
+            <option value="315576000">10 years / second</option>
+            <option value="1577880000">50 years / second</option>
+            <option value="3155760000">100 years / second</option>
+          </select>
+          <output id="speedOut">1 year / second</output>
         </div>
 
         <div class="row compact">
