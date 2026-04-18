@@ -142,10 +142,10 @@ const SPEED_PRESETS = [
 const state = {
   simTimeMs: Date.now(),
   lastFrameMs: performance.now(),
-  speed: SPEED_PRESETS[13].rate,
-  speedLabel: '1 year / second',
-  speedIndex: 13,
-  zoomPercent: 100,
+  speed: SPEED_PRESETS[12].rate,
+  speedLabel: '30 days / second',
+  speedIndex: 12,
+  zoomPercent: 300,
   paused: false,
   scaleMode: 'exaggerated'
 };

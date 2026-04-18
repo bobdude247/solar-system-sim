@@ -19,7 +19,7 @@
       <section class="controls card">
         <div class="row">
           <label for="speed">Time rate</label>
-          <input id="speed" type="range" min="0" max="20" step="1" value="13" list="speedTicks" />
+          <input id="speed" type="range" min="0" max="20" step="1" value="12" list="speedTicks" />
           <datalist id="speedTicks">
             <option value="0" label="1x"></option>
             <option value="8" label="1 day/s"></option>
@@ -31,14 +31,14 @@
             <option value="19" label="50 year/s"></option>
             <option value="20" label="100 year/s"></option>
           </datalist>
-          <output id="speedOut">1 year / second</output>
-          <div id="speedDetail" class="hint">about 31.56 million × realtime</div>
+          <output id="speedOut">30 days / second</output>
+          <div id="speedDetail" class="hint">about 2.59 million × realtime</div>
         </div>
 
         <div class="row">
           <label for="zoom">Zoom</label>
-          <input id="zoom" type="range" min="25" max="500" step="1" value="100" />
-          <output id="zoomOut">100%</output>
+          <input id="zoom" type="range" min="25" max="500" step="1" value="300" />
+          <output id="zoomOut">300%</output>
         </div>
 
         <div class="row compact">
