@@ -145,7 +145,7 @@ const state = {
   speed: SPEED_PRESETS[12].rate,
   speedLabel: '30 days / second',
   speedIndex: 12,
-  zoomPercent: 300,
+  zoomPercent: 260,
   paused: false,
   scaleMode: 'exaggerated'
 };
