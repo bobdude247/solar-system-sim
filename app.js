@@ -111,6 +111,7 @@ const zoomInput = document.getElementById('zoom');
 const zoomOut = document.getElementById('zoomOut');
 const planetLabelsToggle = document.getElementById('planetLabelsToggle');
 const moonLabelsToggle = document.getElementById('moonLabelsToggle');
+const orbitPathsToggle = document.getElementById('orbitPathsToggle');
 const pauseBtn = document.getElementById('pauseBtn');
 const nowBtn = document.getElementById('nowBtn');
 const scaleModeSelect = document.getElementById('scaleMode');
@@ -188,6 +189,7 @@ const state = {
   zoomPercent: 260,
   showPlanetLabels: true,
   showMoonLabels: true,
+  showOrbitPaths: true,
   paused: false,
   scaleMode: 'exaggerated'
 };
@@ -358,6 +360,58 @@ function drawBackground(w, h) {
   ctx.fillRect(0, 0, w, h);
 }
 
+function drawPlanetOrbitPath(planet, cx, cy, pxScale, mode) {
+  const steps = 220;
+  const w = degToRad(planet.varpi - planet.Omega);
+  const i = degToRad(planet.i);
+  const O = degToRad(planet.Omega);
+
+  ctx.beginPath();
+  for (let s = 0; s <= steps; s += 1) {
+    const E = (s / steps) * TWO_PI;
+    const xv = planet.a * (Math.cos(E) - planet.e);
+    const yv = planet.a * Math.sqrt(1 - planet.e ** 2) * Math.sin(E);
+    const v = Math.atan2(yv, xv);
+    const r = Math.sqrt(xv * xv + yv * yv);
+
+    const xh = r * (Math.cos(O) * Math.cos(v + w) - Math.sin(O) * Math.sin(v + w) * Math.cos(i));
+    const yh = r * (Math.sin(O) * Math.cos(v + w) + Math.cos(O) * Math.sin(v + w) * Math.cos(i));
+
+    const projected = projectPoint(xh, yh, mode);
+    const p = worldToCanvas(projected.x, projected.y, cx, cy, pxScale);
+
+    if (s === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  }
+  ctx.strokeStyle = 'rgba(185, 208, 255, 0.16)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+function drawMoonOrbitPath(planetPos, moon, cx, cy, pxScale, mode, moonScaleBoost, planetCanvas) {
+  const steps = 120;
+  ctx.beginPath();
+
+  for (let s = 0; s <= steps; s += 1) {
+    const theta = (s / steps) * TWO_PI;
+    const aAU = moon.aKm / AU_KM;
+    const moonAbsX = planetPos.xAU + aAU * Math.cos(theta);
+    const moonAbsY = planetPos.yAU + aAU * Math.sin(theta);
+    const moonProjected = projectPoint(moonAbsX, moonAbsY, mode);
+    const moonCanvas = worldToCanvas(moonProjected.x, moonProjected.y, cx, cy, pxScale);
+
+    const moonDrawX = planetCanvas.x + (moonCanvas.x - planetCanvas.x) * moonScaleBoost;
+    const moonDrawY = planetCanvas.y + (moonCanvas.y - planetCanvas.y) * moonScaleBoost;
+
+    if (s === 0) ctx.moveTo(moonDrawX, moonDrawY);
+    else ctx.lineTo(moonDrawX, moonDrawY);
+  }
+
+  ctx.strokeStyle = 'rgba(180, 190, 215, 0.2)';
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+}
+
 function render() {
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
@@ -369,13 +423,10 @@ function render() {
 
   drawBackground(w, h);
 
-  for (const planet of PLANETS) {
-    const orbitR = orbitDisplayRadiusAU(planet.a, state.scaleMode) * pxScale;
-    ctx.beginPath();
-    ctx.arc(cx, cy, orbitR, 0, TWO_PI);
-    ctx.strokeStyle = 'rgba(185, 208, 255, 0.16)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
+  if (state.showOrbitPaths) {
+    for (const planet of PLANETS) {
+      drawPlanetOrbitPath(planet, cx, cy, pxScale, state.scaleMode);
+    }
   }
 
   ctx.beginPath();
@@ -411,14 +462,8 @@ function render() {
       const moonProjected = projectPoint(moonAbsX, moonAbsY, state.scaleMode);
       const mp = worldToCanvas(moonProjected.x, moonProjected.y, cx, cy, pxScale);
 
-      if (drawMoonOrbits) {
-        const moonOrbitDisplayAU = projectedRadiusForDistance(rel.rAU, state.scaleMode);
-        const moonOrbitRpx = moonOrbitDisplayAU * pxScale * moonScaleBoost;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, moonOrbitRpx, 0, TWO_PI);
-        ctx.strokeStyle = 'rgba(180, 190, 215, 0.2)';
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
+      if (state.showOrbitPaths && drawMoonOrbits) {
+        drawMoonOrbitPath(pos, moon, cx, cy, pxScale, state.scaleMode, moonScaleBoost, p);
       }
 
       const moonDrawX = p.x + (mp.x - p.x) * moonScaleBoost;
@@ -486,6 +531,10 @@ moonLabelsToggle.addEventListener('change', () => {
   state.showMoonLabels = moonLabelsToggle.checked;
 });
 
+orbitPathsToggle.addEventListener('change', () => {
+  state.showOrbitPaths = orbitPathsToggle.checked;
+});
+
 pauseBtn.addEventListener('click', () => {
   state.paused = !state.paused;
   pauseBtn.textContent = state.paused ? 'Resume' : 'Pause';
@@ -509,6 +558,7 @@ applySpeedIndex(state.speedIndex);
 applyZoomBoundsByScaleMode();
 planetLabelsToggle.checked = state.showPlanetLabels;
 moonLabelsToggle.checked = state.showMoonLabels;
+orbitPathsToggle.checked = state.showOrbitPaths;
 resizeCanvasToDisplaySize();
 requestAnimationFrame((t) => {
   state.lastFrameMs = t;
