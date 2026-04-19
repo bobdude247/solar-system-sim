@@ -195,7 +195,7 @@ const state = {
 };
 
 function applyZoomBoundsByScaleMode() {
-  const maxZoom = 4000;
+  const maxZoom = 400_000;
   zoomInput.max = String(maxZoom);
 
   if (state.zoomPercent > maxZoom) {
@@ -203,7 +203,7 @@ function applyZoomBoundsByScaleMode() {
   }
 
   zoomInput.value = String(state.zoomPercent);
-  zoomOut.textContent = `${state.zoomPercent}%`;
+  zoomOut.textContent = `${state.zoomPercent}% (${(state.zoomPercent / 100).toFixed(2)}x)`;
 }
 
 function formatMultiplierWords(multiplier) {
@@ -520,7 +520,7 @@ speedInput.addEventListener('input', () => {
 
 zoomInput.addEventListener('input', () => {
   state.zoomPercent = Number(zoomInput.value);
-  zoomOut.textContent = `${state.zoomPercent}%`;
+  zoomOut.textContent = `${state.zoomPercent}% (${(state.zoomPercent / 100).toFixed(2)}x)`;
 });
 
 planetLabelsToggle.addEventListener('change', () => {
