@@ -193,7 +193,7 @@ const state = {
 };
 
 function applyZoomBoundsByScaleMode() {
-  const maxZoom = state.scaleMode === 'realistic' ? 10000 : 1200;
+  const maxZoom = state.scaleMode === 'realistic' ? 2400 : 1200;
   zoomInput.max = String(maxZoom);
 
   if (state.zoomPercent > maxZoom) {
@@ -365,7 +365,6 @@ function render() {
   const cy = h * 0.5;
   const pxScale = getPxPerAU(w, h, state.scaleMode);
   const moonScaleBoost = Math.max(1, state.zoomPercent / 70);
-  const autoMoonLabelThresholdReached = state.zoomPercent >= 700;
   const drawMoonOrbits = state.zoomPercent >= 220;
 
   drawBackground(w, h);
@@ -430,7 +429,7 @@ function render() {
       ctx.fillStyle = moon.color;
       ctx.fill();
 
-      if (state.showMoonLabels && autoMoonLabelThresholdReached) {
+      if (state.showMoonLabels) {
         drawLabel(moon.name, moonDrawX, moonDrawY, w, h);
       }
     }
