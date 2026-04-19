@@ -195,7 +195,7 @@ const state = {
 };
 
 function applyZoomBoundsByScaleMode() {
-  const maxZoom = state.scaleMode === 'realistic' ? 2400 : 1200;
+  const maxZoom = 4000;
   zoomInput.max = String(maxZoom);
 
   if (state.zoomPercent > maxZoom) {
